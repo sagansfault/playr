@@ -164,6 +164,9 @@ impl<'a> App<'a> {
                             }
                             KeyCode::Char('=') => {
                                 self.looping = !self.looping;
+                                if self.looping {
+                                    self.shuffle = false;
+                                }
                             }
                             KeyCode::Backspace => {
                                 self.sink.stop(); // since we only hold one track in the stream at a time, this works as a skip
@@ -171,6 +174,9 @@ impl<'a> App<'a> {
                             },
                             KeyCode::Tab => {
                                 self.shuffle = !self.shuffle;
+                                if self.shuffle {
+                                    self.looping = false;
+                                }
                             },
                             KeyCode::Right => {
                                 self.sink.set_volume(
