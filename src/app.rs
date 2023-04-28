@@ -6,6 +6,7 @@ use std::{
 };
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
+use rand::seq::SliceRandom;
 use rodio::Sink;
 use tui::{
     backend::CrosstermBackend,
@@ -65,8 +66,11 @@ pub struct App<'a> {
     sink: &'a mut Sink,
     queue: VecDeque<String>,
     looping: bool,
+    shuffle: bool,
     playing: Option<String>,
 }
+
+
 
 impl<'a> App<'a> {
     pub fn new(sink: &mut Sink) -> App {
@@ -88,6 +92,7 @@ impl<'a> App<'a> {
             sink,
             queue: VecDeque::new(),
             looping: false,
+            shuffle: false,
             playing: None,
         }
     }
@@ -98,10 +103,26 @@ impl<'a> App<'a> {
         tick_rate: Duration,
     ) -> Result<(), Box<dyn Error>> {
         let mut last_tick = Instant::now();
+        let mut rng = rand::thread_rng();
         loop {
             // handle playing the next song and looping
             if self.sink.len() == 0 {
-                if self.looping && self.playing.is_some() {
+                // playing should still be stored here so can we make sure we dont play the same song twice
+                if self.shuffle {
+                    let mut previous_or_to_play: String = self.playing.as_ref().map(|v| v.clone()).unwrap_or("".to_string());
+                    loop {
+                        if self.songs.items.len() <= 1 {
+                            break;
+                        }
+                        if let Some(random_song) = self.songs.items.choose(&mut rng) {
+                            if !random_song.eq_ignore_ascii_case(&previous_or_to_play) {
+                                previous_or_to_play = random_song.clone();
+                                break;
+                            }
+                        }
+                    }
+                    self.play(previous_or_to_play);
+                } else if self.looping && self.playing.is_some() {
                     let current = self.playing.as_ref().unwrap();
                     self.play(current.clone());
                 } else {
@@ -144,11 +165,13 @@ impl<'a> App<'a> {
                             KeyCode::Char('=') => {
                                 self.looping = !self.looping;
                             }
-                            // Skipping is currently broken
-                            // KeyCode::Tab => {
-                            //     self.sink.skip_one();
-                            //     println!("skipped, now at: {}", self.sink.len());
-                            // },
+                            KeyCode::Backspace => {
+                                self.sink.stop(); // since we only hold one track in the stream at a time, this works as a skip
+                                self.sink.play();
+                            },
+                            KeyCode::Tab => {
+                                self.shuffle = !self.shuffle;
+                            },
                             KeyCode::Right => {
                                 self.sink.set_volume(
                                     ((self.sink.volume() * 100.0) as usize + 10).min(200) as f32
@@ -245,8 +268,8 @@ fn ui(f: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
         Row::new(vec![Cell::from("Queue"), Cell::from("Shift + Enter")]),
         Row::new(vec![Cell::from("Pause"), Cell::from("Space")]),
         Row::new(vec![Cell::from("Loop"), Cell::from("=")]),
-        // Skipping is currently broken
-        //Row::new(vec![Cell::from("Skip"), Cell::from("Backspace")]),
+        Row::new(vec![Cell::from("Shuffle"), Cell::from("Tab")]),
+        Row::new(vec![Cell::from("Skip"), Cell::from("Backspace")]),
         Row::new(vec![Cell::from("Volume Up"), Cell::from("Right Arrow")]),
         Row::new(vec![Cell::from("Volume Down"), Cell::from("Left Arrow")]),
     ];
@@ -269,6 +292,8 @@ fn ui(f: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
                         .unwrap_or("None".to_string())
                 )),
             ])
+        } else if app.shuffle {
+            Row::new(vec![Cell::from("Shuffling"), Cell::from("")])
         } else {
             Row::new(vec![
                 Cell::from("Playing"),
