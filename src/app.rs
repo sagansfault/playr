@@ -163,9 +163,11 @@ impl<'a> App<'a> {
                                 }
                             }
                             KeyCode::Char('=') => {
-                                self.looping = !self.looping;
-                                if self.looping {
-                                    self.shuffle = false;
+                                if !self.songs.items.is_empty() {
+                                    self.looping = !self.looping;
+                                    if self.looping {
+                                        self.shuffle = false;
+                                    }
                                 }
                             }
                             KeyCode::Backspace => {
@@ -173,9 +175,11 @@ impl<'a> App<'a> {
                                 self.sink.play();
                             },
                             KeyCode::Tab => {
-                                self.shuffle = !self.shuffle;
-                                if self.shuffle {
-                                    self.looping = false;
+                                if self.songs.items.len() > 1 {
+                                    self.looping = !self.looping;
+                                    if self.looping {
+                                        self.shuffle = false;
+                                    }
                                 }
                             },
                             KeyCode::Right => {
