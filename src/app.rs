@@ -176,9 +176,9 @@ impl<'a> App<'a> {
                             },
                             KeyCode::Tab => {
                                 if self.songs.items.len() > 1 {
-                                    self.looping = !self.looping;
-                                    if self.looping {
-                                        self.shuffle = false;
+                                    self.shuffle = !self.shuffle;
+                                    if self.shuffle {
+                                        self.looping = false;
                                     }
                                 }
                             },
