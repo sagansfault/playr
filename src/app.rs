@@ -207,8 +207,8 @@ impl<'a> App<'a> {
 
     fn play(&mut self, song: String) {
         let file = std::fs::File::open(format!("playrsources/{}", song)).unwrap();
-        self.sink
-            .append(rodio::Decoder::new(BufReader::new(file)).unwrap());
+        self.sink.stop();
+        self.sink.append(rodio::Decoder::new(BufReader::new(file)).unwrap());
         self.playing = Some(song)
     }
 
